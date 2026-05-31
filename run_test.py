@@ -1,25 +1,24 @@
 import os
 import sys
-from dotenv import load_dotenv
 from google import genai
 from google.genai import errors
 
-def generate_text():
-    load_dotenv()
+def run_chat():
     if not os.environ.get("GEMINI_API_KEY"):
         print("Error: GEMINI_API_KEY not found.", file=sys.stderr)
         sys.exit(1)
     try:
         client = genai.Client()
-        response = client.models.generate_content(
+        chat = client.chats.create(
             model="gemini-2.5-flash",
-            contents="Respond with a brief cute sentence as if you were a embedded AI robot toy for which this API is used to generate responses.",
+            config={"system_instruction": "You are an embedded educational AI robot toy. Respond with a brief answer."}
         )
-        print(response.text)
+        response1 = chat.send_message("How large are sharks?")
+        print(response1.text)
+        response2 = chat.send_message("What animal did we just talk about?")
+        print(response2.text)
     except errors.APIError as e:
         print(f"API Error: {e}", file=sys.stderr)
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}", file=sys.stderr)
 
 if __name__ == "__main__":
-    generate_text()
+    run_chat()
