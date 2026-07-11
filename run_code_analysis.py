@@ -33,9 +33,7 @@ def analyze_file(client, input_path, output_path, relative_path):
             time.sleep(settings.DELAY_SECONDS)
             return
         except Exception as e:
-            if isinstance(e, errors.APIError) and (e.code == 429 or "RESOURCE_EXHAUSTED" in str(e)):
-                print(f"Quota exhausted. Quitting script.", file=sys.stderr, flush=True)
-                sys.exit(1)
+            check_error(e)
             attempt += 1
             if attempt > settings.MAX_RETRIES:
                 print(f"Giving up on {relative_path} after {attempt - 1} retries: {e}", file=sys.stderr, flush=True)
@@ -43,6 +41,15 @@ def analyze_file(client, input_path, output_path, relative_path):
             backoff = min(settings.DELAY_SECONDS * (2 ** (attempt - 1)), settings.MAX_DELAY_SECONDS)
             print(f"Error processing {relative_path} (attempt {attempt}/{settings.MAX_RETRIES}): {e}.\nRetrying in {backoff}s...", file=sys.stderr, flush=True)
             time.sleep(backoff)
+
+def check_error(e):
+    if isinstance(e, errors.APIError):
+        if e.code == 429 or "RESOURCE_EXHAUSTED" in str(e):
+            print("Quota exhausted. Quitting script.", file=sys.stderr, flush=True)
+            sys.exit(1)
+        if e.code == 404 or "NOT_FOUND" in str(e):
+            print("Resource not found. Quitting script.", file=sys.stderr, flush=True)
+            sys.exit(1)
 
 def run_chat():
     if not os.path.exists(settings.BASE_DIR):
