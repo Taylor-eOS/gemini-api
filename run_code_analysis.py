@@ -3,6 +3,7 @@ import sys
 import time
 from google import genai
 from google.genai import errors
+from utils import natural_sort_key
 import settings
 
 def collect_files():
@@ -10,7 +11,7 @@ def collect_files():
     for root, _, filenames in os.walk(settings.BASE_DIR):
         for filename in filenames:
             files.append(os.path.join(root, filename))
-    files.sort()
+    files.sort(key=natural_sort_key)
     return files
 
 def analyze_file(client, input_path, output_path, relative_path):
@@ -23,20 +24,24 @@ def analyze_file(client, input_path, output_path, relative_path):
     attempt = 0
     while True:
         try:
-            chat = client.chats.create(model=settings.MODEL_NAME, config={"system_instruction": settings.CODING_INSTRUCTION})
+            chat = client.chats.create(model=settings.MODEL_NAME, config={"system_instruction": settings.CODING_INSTRUCTION, "tools": []})
             response = chat.send_message(code_content)
+            cleaned_text = "\n".join([line for line in response.text.splitlines() if line.strip()])
             with open(output_path, "w") as f:
-                f.write(response.text)
+                f.write(cleaned_text)
             print(f"Saved analysis to {output_path}", flush=True)
             time.sleep(settings.DELAY_SECONDS)
             return
         except Exception as e:
+            if isinstance(e, errors.APIError) and (e.code == 429 or "RESOURCE_EXHAUSTED" in str(e)):
+                print(f"Quota exhausted. Quitting script.", file=sys.stderr, flush=True)
+                sys.exit(1)
             attempt += 1
             if attempt > settings.MAX_RETRIES:
                 print(f"Giving up on {relative_path} after {attempt - 1} retries: {e}", file=sys.stderr, flush=True)
                 return
             backoff = min(settings.DELAY_SECONDS * (2 ** (attempt - 1)), settings.MAX_DELAY_SECONDS)
-            print(f"Error processing {relative_path} (attempt {attempt}/{settings.MAX_RETRIES}): {e}. Retrying in {backoff}s...", file=sys.stderr, flush=True)
+            print(f"Error processing {relative_path} (attempt {attempt}/{settings.MAX_RETRIES}): {e}.\nRetrying in {backoff}s...", file=sys.stderr, flush=True)
             time.sleep(backoff)
 
 def run_chat():
@@ -60,7 +65,7 @@ def run_chat():
         if os.path.exists(output_path):
             print(f"Skipping {relative_path}, file already exists.")
             continue
-        print(f"Processing {relative_path}.", flush=True)
+        print(f"Processing {relative_path}", flush=True)
         analyze_file(client, input_path, output_path, relative_path)
     print("Analysis script execution finished.")
 
