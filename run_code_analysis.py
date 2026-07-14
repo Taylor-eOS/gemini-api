@@ -8,18 +8,19 @@ import settings
 
 def collect_files():
     files = []
-    for root, _, filenames in os.walk(settings.BASE_DIR):
-        for filename in filenames:
-            files.append(os.path.join(root, filename))
+    for item in os.listdir(settings.BASE_DIR):
+        full_path = os.path.join(settings.BASE_DIR, item)
+        if os.path.isfile(full_path):
+            files.append(full_path)
     files.sort(key=natural_sort_key)
     return files
 
-def analyze_file(client, input_path, output_path, relative_path):
+def analyze_file(client, input_path, output_path, filename):
     try:
         with open(input_path, "r") as f:
             code_content = f.read()
     except Exception as e:
-        print(f"Error reading {relative_path}: {e}", file=sys.stderr, flush=True)
+        print(f"Error reading {filename}: {e}", file=sys.stderr, flush=True)
         return
     attempt = 0
     while True:
@@ -36,10 +37,10 @@ def analyze_file(client, input_path, output_path, relative_path):
             check_error(e)
             attempt += 1
             if attempt > settings.MAX_RETRIES:
-                print(f"Giving up on {relative_path} after {attempt - 1} retries: {e}", file=sys.stderr, flush=True)
+                print(f"Giving up on {filename} after {attempt - 1} retries: {e}", file=sys.stderr, flush=True)
                 return
             backoff = min(settings.DELAY_SECONDS * (2 ** (attempt - 1)), settings.MAX_DELAY_SECONDS)
-            print(f"Error processing {relative_path} (attempt {attempt}/{settings.MAX_RETRIES}): {e}.\nRetrying in {backoff}s...", file=sys.stderr, flush=True)
+            print(f"Error processing {filename} (attempt {attempt}/{settings.MAX_RETRIES}): {e}.\nRetrying in {backoff}s...", file=sys.stderr, flush=True)
             time.sleep(backoff)
 
 def check_error(e):
@@ -66,14 +67,13 @@ def run_chat():
         print("No files found to process.")
         return
     for input_path in files:
-        relative_path = os.path.relpath(input_path, settings.BASE_DIR)
-        flat_name = relative_path.replace(os.sep, "_")
-        output_path = os.path.join(settings.OUTPUT_DIR, f"{os.path.splitext(flat_name)[0]}.txt")
+        filename = os.path.basename(input_path)
+        output_path = os.path.join(settings.OUTPUT_DIR, f"{os.path.splitext(filename)[0]}.txt")
         if os.path.exists(output_path):
-            print(f"Skipping {relative_path}, file already exists.")
+            print(f"Skipping {filename}, file already exists.")
             continue
-        print(f"Processing {relative_path}", flush=True)
-        analyze_file(client, input_path, output_path, relative_path)
+        print(f"Processing {filename}", flush=True)
+        analyze_file(client, input_path, output_path, filename)
     print("Analysis script execution finished.")
 
 if __name__ == "__main__":
