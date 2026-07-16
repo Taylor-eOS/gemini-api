@@ -26,3 +26,11 @@ def natural_sort_key(s):
     if part:
         key.append(int(part) if is_numeric else part.lower())
     return key
+
+def strip_code_fence(text):
+    lines = [line for line in text.splitlines() if line.strip()]
+    if lines and lines[0].startswith("```"):
+        lines = lines[1:]
+    if lines and lines[-1].startswith("```"):
+        lines = lines[:-1]
+    return "\n".join(lines)

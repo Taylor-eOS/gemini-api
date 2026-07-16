@@ -3,7 +3,7 @@ import sys
 import time
 from google import genai
 from google.genai import errors
-from utils import natural_sort_key, collect_files
+from utils import natural_sort_key, collect_files, strip_code_fence
 import settings
 
 def analyze_file(client, input_path, output_path, filename):
@@ -18,7 +18,7 @@ def analyze_file(client, input_path, output_path, filename):
         try:
             chat = client.chats.create(model=settings.MODEL_NAME, config={"system_instruction": settings.CODING_INSTRUCTION, "tools": []})
             response = chat.send_message(code_content)
-            cleaned_text = "\n".join([line for line in response.text.splitlines() if line.strip()])
+            cleaned_text = strip_code_fence(response.text)
             with open(output_path, "w") as f:
                 f.write(cleaned_text)
             print(f"Saved analysis to {output_path}", flush=True)
