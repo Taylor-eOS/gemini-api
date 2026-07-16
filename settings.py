@@ -1,5 +1,15 @@
-BASE_DIR = input("Input folder: ") or "input"
-OUTPUT_DIR = BASE_DIR + "_analyzed"
+import os
+
+STARTING_STRING = "input"
+matching_dirs = [d for d in os.listdir(".") if os.path.isdir(d) and d.startswith(STARTING_STRING)]
+if len(matching_dirs) == 0:
+    raise FileNotFoundError(f"No folder starting with {STARTING_STRING} found")
+if len(matching_dirs) > 1:
+    raise FileNotFoundError(f"Multiple folders starting with {STARTING_STRING} found: {matching_dirs}")
+BASE_DIR = matching_dirs[0]
+IDENTIFIER = BASE_DIR.split("_", 1)[1] if "_" in BASE_DIR else BASE_DIR
+OUTPUT_DIR = IDENTIFIER + "_analyzed"
+
 MODEL_NAME = "gemini-3.5-flash" #gemini-3.5-flash, gemini-3.1-flash-lite, gemini-2.5-flash, gemma-4-31b-it
 DELAY_SECONDS = 8
 MAX_RETRIES = 10
