@@ -3,17 +3,8 @@ import sys
 import time
 from google import genai
 from google.genai import errors
-from utils import natural_sort_key
+from utils import natural_sort_key, collect_files
 import settings
-
-def collect_files():
-    files = []
-    for item in os.listdir(settings.BASE_DIR):
-        full_path = os.path.join(settings.BASE_DIR, item)
-        if os.path.isfile(full_path):
-            files.append(full_path)
-    files.sort(key=natural_sort_key)
-    return files
 
 def analyze_file(client, input_path, output_path, filename):
     try:
@@ -77,4 +68,5 @@ def run_chat():
     print("Analysis script execution finished.")
 
 if __name__ == "__main__":
+    print(f"Using {settings.MODEL_NAME}")
     run_chat()

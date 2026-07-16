@@ -1,3 +1,15 @@
+import os
+from settings import BASE_DIR
+
+def collect_files():
+    files = []
+    for item in os.listdir(BASE_DIR):
+        full_path = os.path.join(BASE_DIR, item)
+        if os.path.isfile(full_path):
+            files.append(full_path)
+    files.sort(key=natural_sort_key)
+    return files
+
 def natural_sort_key(s):
     key = []
     part = ""
