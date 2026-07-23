@@ -6,6 +6,19 @@ from google.genai import errors
 from utils import natural_sort_key, collect_files, strip_code_fence
 import settings
 
+model_index = 0
+
+def current_model():
+    return settings.MODEL_NAMES[model_index]
+
+def advance_model():
+    global model_index
+    model_index += 1
+    if model_index >= len(settings.MODEL_NAMES):
+        print("Quota exhausted on all models. Quitting script.", file=sys.stderr, flush=True)
+        sys.exit(1)
+    print(f"Switching to model {current_model()}", file=sys.stderr, flush=True)
+
 def analyze_file(client, input_path, output_path, filename):
     try:
         with open(input_path, "r") as f:
@@ -16,7 +29,7 @@ def analyze_file(client, input_path, output_path, filename):
     attempt = 0
     while True:
         try:
-            chat = client.chats.create(model=settings.MODEL_NAME, config={"system_instruction": settings.CODING_INSTRUCTION, "tools": []})
+            chat = client.chats.create(model=current_model(), config={"system_instruction": settings.CODING_INSTRUCTION, "tools": []})
             response = chat.send_message(code_content)
             cleaned_text = strip_code_fence(response.text)
             with open(output_path, "w") as f:
@@ -25,7 +38,9 @@ def analyze_file(client, input_path, output_path, filename):
             time.sleep(settings.DELAY_SECONDS)
             return
         except Exception as e:
-            check_error(e)
+            if check_error(e):
+                attempt = 0
+                continue
             attempt += 1
             if attempt > settings.MAX_RETRIES:
                 print(f"Giving up on {filename} after {attempt - 1} retries: {e}", file=sys.stderr, flush=True)
@@ -37,11 +52,12 @@ def analyze_file(client, input_path, output_path, filename):
 def check_error(e):
     if isinstance(e, errors.APIError):
         if e.code == 429 or "RESOURCE_EXHAUSTED" in str(e):
-            print("Quota exhausted. Quitting script.", file=sys.stderr, flush=True)
-            sys.exit(1)
+            advance_model()
+            return True
         if e.code == 404 or "NOT_FOUND" in str(e):
             print("Resource not found. Quitting script.", file=sys.stderr, flush=True)
             sys.exit(1)
+    return False
 
 def run_chat():
     if not os.path.exists(settings.BASE_DIR):
@@ -68,5 +84,5 @@ def run_chat():
     print("Analysis script execution finished.")
 
 if __name__ == "__main__":
-    print(f"Using {settings.MODEL_NAME}")
+    print(f"Using {current_model()}")
     run_chat()

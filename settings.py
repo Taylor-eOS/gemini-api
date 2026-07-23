@@ -8,9 +8,9 @@ if len(matching_dirs) > 1:
     raise FileNotFoundError(f"Multiple folders starting with {STARTING_STRING} found")
 BASE_DIR = matching_dirs[0]
 IDENTIFIER = BASE_DIR.split("_", 1)[1] if "_" in BASE_DIR else BASE_DIR
-OUTPUT_DIR = IDENTIFIER + "_analyzed"
+OUTPUT_DIR = "analyzed_" + IDENTIFIER
 
-MODEL_NAME = "gemini-3.1-flash-lite" #gemini-3.5-flash, gemini-3.1-flash-lite, gemini-2.5-flash, gemma-4-31b-it
+MODEL_NAMES = ["gemini-3.5-flash", "gemini-3.1-flash-lite"]
 DELAY_SECONDS = 8
 MAX_RETRIES = 10
 MAX_DELAY_SECONDS = 600
