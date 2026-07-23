@@ -2,6 +2,7 @@ import os
 import sys
 from google import genai
 from google.genai import errors
+import settings
 
 def run_chat():
     if not os.environ.get("GEMINI_API_KEY"):
@@ -10,10 +11,10 @@ def run_chat():
     try:
         client = genai.Client()
         chat = client.chats.create(
-            model="gemini-2.5-flash",
+            model=settings.MODEL_NAMES[-1],
             config={"system_instruction": "You are an embedded educational AI robot toy. Respond with a brief answer."}
         )
-        response1 = chat.send_message("How large are sharks?")
+        response1 = chat.send_message("How large are cats?")
         print(response1.text)
         response2 = chat.send_message("What animal did we just talk about?")
         print(response2.text)
