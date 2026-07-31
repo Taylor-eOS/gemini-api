@@ -37,7 +37,8 @@ def analyze_file(client, input_path, output_path, filename):
             cleaned_text = strip_code_fence(response.text)
             with open(output_path, "w") as f:
                 f.write(cleaned_text)
-            print(f"Saved analysis to {output_path}, waiting {settings.DELAY_SECONDS} seconds", flush=True)
+            print(f"Saved analysis to {output_path}", flush=True)
+            print(f"Waiting {settings.DELAY_SECONDS} seconds", flush=True)
             time.sleep(settings.DELAY_SECONDS)
             return
         except Exception as e:
@@ -62,7 +63,7 @@ def analyze_file(client, input_path, output_path, filename):
                 print(f"giving up after exhausting {attempt - 1} retries on {current_model()}: {e}", file=sys.stderr, flush=True)
                 return
             backoff = min(settings.DELAY_SECONDS * (2 ** (attempt - 1)), settings.MAX_DELAY_SECONDS)
-            print(f"retry {attempt} of {settings.MAX_RETRIES} on {current_model()}: {e}.\nRetrying in {backoff}s...", file=sys.stderr, flush=True)
+            print(f"retry {attempt} of {settings.MAX_UNAVAILABLE_RETRIES} on {current_model()}: {e}.\nRetrying in {backoff}s...", file=sys.stderr, flush=True)
             time.sleep(backoff)
 
 def check_error(e):
